@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
@@ -29,6 +30,7 @@ type DBInterface interface {
 	InsertDeprecatedAPI(model.DeprecatedAPI)
 	InsertDeletedAPI(model.DeletedAPI)
 	InsertKubvizEvent(model.Metrics)
+	InsertTrivyMetrics(metrics model.Trivy)
 	InsertGitEvent(string)
 	InsertKubeScoreMetrics(model.KubeScoreRecommendations)
 	RetriveKetallEvent() ([]model.Resource, error)
@@ -66,7 +68,7 @@ func NewDBClient(conf *config.Config) (DBInterface, error) {
 		}
 		return nil, err
 	}
-	tables := []DBStatement{kubvizTable, rakeesTable, kubePugDepricatedTable, kubepugDeletedTable, ketallTable, outdateTable, clickhouseExperimental, containerDockerhubTable, containerGithubTable, kubescoreTable, dockerHubBuildTable, DBStatement(dbstatement.AzureDevopsTable), DBStatement(dbstatement.GithubTable), DBStatement(dbstatement.GitlabTable), DBStatement(dbstatement.BitbucketTable), DBStatement(dbstatement.GiteaTable)}
+	tables := []DBStatement{kubvizTable, rakeesTable, kubePugDepricatedTable, trivyTableVul, kubepugDeletedTable, ketallTable, outdateTable, clickhouseExperimental, containerDockerhubTable, containerGithubTable, kubescoreTable, dockerHubBuildTable, DBStatement(dbstatement.AzureDevopsTable), DBStatement(dbstatement.GithubTable), DBStatement(dbstatement.GitlabTable), DBStatement(dbstatement.BitbucketTable), DBStatement(dbstatement.GiteaTable)}
 	for _, table := range tables {
 		if err = splconn.Exec(context.Background(), string(table)); err != nil {
 			return nil, err
@@ -400,6 +402,38 @@ func (c *DBClient) InsertContainerEventDockerHub(build model.DockerHubBuild) {
 	}
 	if err := tx.Commit(); err != nil {
 		log.Fatal(err)
+	}
+}
+func (c *DBClient) InsertTrivyMetrics(metrics model.Trivy) {
+	for _, result := range metrics.Report.Results {
+		for _, vulnerability := range result.Vulnerabilities {
+			var (
+				tx, _   = c.conn.Begin()
+				stmt, _ = tx.Prepare(InsertTrivyVul)
+			)
+			if _, err := stmt.Exec(
+				metrics.ID,
+				metrics.ClusterName,
+				vulnerability.VulnerabilityID,
+				strings.Join(vulnerability.VendorIDs, " "),
+				vulnerability.PkgID,
+				vulnerability.PkgName,
+				vulnerability.PkgPath,
+				vulnerability.InstalledVersion,
+				vulnerability.FixedVersion,
+				vulnerability.Title,
+				vulnerability.Severity,
+				vulnerability.PublishedDate,
+				vulnerability.LastModifiedDate,
+			); err != nil {
+				log.Fatal(err)
+			}
+			if err := tx.Commit(); err != nil {
+				log.Fatal(err)
+			}
+			stmt.Close()
+		}
+
 	}
 }
 

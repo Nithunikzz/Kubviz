@@ -71,6 +71,24 @@ CREATE TABLE IF NOT EXISTS outdated_images (
 	VersionsBehind Int64
 ) engine=File(TabSeparated)
 `
+const trivyTableVul DBStatement = `
+	    CREATE TABLE IF NOT EXISTS trivy (
+		    id UUID,
+			cluster_name String,
+			namespace String,
+            vul_id string,
+            vul_vendor_ids string,
+			vul_pkg_id String,
+			vul_pkg_name String,
+			vul_pkg_path String,
+            vul_installed_version string,
+            vul_fixed_version string,
+			vul_title String,
+			vul_severity String,
+			vul_published_date DateTime('UTC'),
+			vul_last_modified_date DateTime('UTC')
+	    ) engine=File(TabSeparated)
+		`
 const kubescoreTable DBStatement = `
 	    CREATE TABLE IF NOT EXISTS kubescore (
 		    id UUID,
@@ -101,4 +119,5 @@ const InsertKubvizEvent DBStatement = "INSERT INTO events (ClusterName, Id, Even
 const clickhouseExperimental DBStatement = `SET allow_experimental_object_type=1;`
 const containerDockerhubTable DBStatement = `CREATE table IF NOT EXISTS container_dockerhub(event JSON) ENGINE = MergeTree ORDER BY tuple();`
 const containerGithubTable DBStatement = `CREATE table IF NOT EXISTS container_github(event JSON) ENGINE = MergeTree ORDER BY tuple();`
+const InsertTrivyVul string = "INSERT INTO trivy (id, cluster_name, namespace, vul_id, vul_vendor_ids, vul_pkg_id, vul_pkg_name, vul_pkg_path, vul_installed_version, vul_fixed_version, vul_title, vul_severity, vul_published_date, vul_last_modified_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?. ?)"
 const InsertKubeScore string = "INSERT INTO kubescore (id, namespace, cluster_name, recommendations) VALUES (?, ?, ?, ?)"

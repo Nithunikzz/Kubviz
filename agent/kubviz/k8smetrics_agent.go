@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"github.com/nats-io/nats.go"
 	"log"
 	"os"
 	"strconv"
@@ -10,7 +9,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/nats-io/nats.go"
+
 	"context"
+
 	"github.com/intelops/kubviz/model"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -66,6 +68,8 @@ func main() {
 	getAllResourceChan := make(chan error, 1)
 	clusterMetricsChan := make(chan error, 1)
 	kubescoreMetricsChan := make(chan error, 1)
+	trivyImagescanChan := make(chan error, 1)
+
 	RakeesErrChan := make(chan error, 1)
 	var (
 		wg        sync.WaitGroup
@@ -97,8 +101,15 @@ func main() {
 		}
 		clientset = getK8sClient(config)
 	}
-	// starting all the go routines
+	// s := gocron.NewScheduler(time.UTC)
+	// // starting all the go routines
+	// _, err = s.Every(1).Hour().Do(outDatedImages, config, js, &wg, outdatedErrChan)
+	// if err != nil {
+	// 	log.Println("Error setting up the job for outDatedImages:", err)
+	// }
 	go outDatedImages(config, js, &wg, outdatedErrChan)
+	go RunTrivyImageScan(config, js, &wg, trivyImagescanChan)
+
 	go KubePreUpgradeDetector(config, js, &wg, kubePreUpgradeChan)
 	go GetAllResources(config, js, &wg, getAllResourceChan)
 	go RakeesOutput(config, js, &wg, RakeesErrChan)
@@ -134,6 +145,10 @@ func main() {
 				log.Println(err)
 			}
 		case err := <-kubescoreMetricsChan:
+			if err != nil {
+				log.Println(err)
+			}
+		case err := <-trivyImagescanChan:
 			if err != nil {
 				log.Println(err)
 			}
