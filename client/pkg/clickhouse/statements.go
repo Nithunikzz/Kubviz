@@ -80,7 +80,7 @@ const kubescoreTable DBStatement = `
 	    ) engine=File(TabSeparated)
 	`
 const trivyTableImage DBStatement = `
-	CREATE TABLE IF NOT EXISTS trivy (
+	CREATE TABLE IF NOT EXISTS trivyimage (
 		id UUID,
 		cluster_name String,
 		vul_id String,
