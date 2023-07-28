@@ -79,7 +79,7 @@ func main() {
 		clientset *kubernetes.Clientset
 	)
 	// waiting for 4 go routines
-	wg.Add(5)
+	wg.Add(6)
 	// connecting with nats ...
 	nc, err := nats.Connect(natsurl, nats.Name("K8s Metrics"), nats.Token(token))
 	checkErr(err)
@@ -139,6 +139,7 @@ func main() {
 	close(clusterMetricsChan)
 	close(kubescoreMetricsChan)
 	close(RakeesErrChan)
+	close(trivyImagescanChan)
 	// for loop will wait for the error channels
 	// logs if any error occurs
 	for {
