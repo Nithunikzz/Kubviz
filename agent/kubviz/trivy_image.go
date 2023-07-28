@@ -60,7 +60,7 @@ func publishImageScanReport(report types.Report, js nats.JetStreamContext, errCh
 		Report:      report,
 	}
 	metricsJson, _ := json.Marshal(metrics)
-	_, err := js.Publish(constants.TRIVY_K8S_SUBJECT, metricsJson)
+	_, err := js.Publish(constants.TRIVY_IMAGE_SUBJECT, metricsJson)
 	if err != nil {
 		errCh <- err
 	}

@@ -55,7 +55,7 @@ func (n *NATSContext) SubscribeAllKubvizNats(conn clickhouse.DBInterface) {
 			},
 		},
 		{
-			Subject:  constants.TRIVY_K8S_SUBJECT,
+			Subject:  constants.TRIVY_IMAGE_SUBJECT,
 			Consumer: constants.TrivyConsumer,
 			Handler: func(msg *nats.Msg) {
 				msg.Ack()
@@ -65,7 +65,7 @@ func (n *NATSContext) SubscribeAllKubvizNats(conn clickhouse.DBInterface) {
 					log.Fatal(err)
 				}
 				log.Printf("Trivy Metrics Received: %#v,", metrics)
-				conn.InsertTrivyMetrics(metrics)
+				conn.InsertTrivyImageMetrics(metrics)
 				log.Println()
 			},
 		},

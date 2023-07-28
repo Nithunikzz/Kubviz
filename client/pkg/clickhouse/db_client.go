@@ -30,7 +30,7 @@ type DBInterface interface {
 	InsertDeprecatedAPI(model.DeprecatedAPI)
 	InsertDeletedAPI(model.DeletedAPI)
 	InsertKubvizEvent(model.Metrics)
-	InsertTrivyMetrics(metrics model.Trivy)
+	InsertTrivyImageMetrics(metrics model.Trivy)
 	InsertGitEvent(string)
 	InsertKubeScoreMetrics(model.KubeScoreRecommendations)
 	RetriveKetallEvent() ([]model.Resource, error)
@@ -68,7 +68,7 @@ func NewDBClient(conf *config.Config) (DBInterface, error) {
 		}
 		return nil, err
 	}
-	tables := []DBStatement{kubvizTable, rakeesTable, kubePugDepricatedTable, trivyTableVul, kubepugDeletedTable, ketallTable, outdateTable, clickhouseExperimental, containerDockerhubTable, containerGithubTable, kubescoreTable, dockerHubBuildTable, DBStatement(dbstatement.AzureDevopsTable), DBStatement(dbstatement.GithubTable), DBStatement(dbstatement.GitlabTable), DBStatement(dbstatement.BitbucketTable), DBStatement(dbstatement.GiteaTable)}
+	tables := []DBStatement{kubvizTable, rakeesTable, kubePugDepricatedTable, trivyTableImage, kubepugDeletedTable, ketallTable, outdateTable, clickhouseExperimental, containerDockerhubTable, containerGithubTable, kubescoreTable, dockerHubBuildTable, DBStatement(dbstatement.AzureDevopsTable), DBStatement(dbstatement.GithubTable), DBStatement(dbstatement.GitlabTable), DBStatement(dbstatement.BitbucketTable), DBStatement(dbstatement.GiteaTable)}
 	for _, table := range tables {
 		if err = splconn.Exec(context.Background(), string(table)); err != nil {
 			return nil, err
@@ -404,12 +404,12 @@ func (c *DBClient) InsertContainerEventDockerHub(build model.DockerHubBuild) {
 		log.Fatal(err)
 	}
 }
-func (c *DBClient) InsertTrivyMetrics(metrics model.Trivy) {
+func (c *DBClient) InsertTrivyImageMetrics(metrics model.Trivy) {
 	for _, result := range metrics.Report.Results {
 		for _, vulnerability := range result.Vulnerabilities {
 			var (
 				tx, _   = c.conn.Begin()
-				stmt, _ = tx.Prepare(InsertTrivyVul)
+				stmt, _ = tx.Prepare(InsertTrivyImage)
 			)
 			if _, err := stmt.Exec(
 				metrics.ID,

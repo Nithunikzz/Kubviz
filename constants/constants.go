@@ -5,6 +5,7 @@ const SUBJECT = "METRICS.kubescore"
 const (
 	KUBESCORE_SUBJECT            = "METRICS.kubescore"
 	TRIVY_K8S_SUBJECT            = "METRICS.trivyk8s"
+	TRIVY_IMAGE_SUBJECT          = "METRICS.trivyimage"
 	StreamSubjects               = "METRICS.*"
 	EventSubject                 = "METRICS.kubvizevent"
 	StreamName                   = "METRICS"

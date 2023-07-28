@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/go-co-op/gocron"
 	"github.com/nats-io/nats.go"
 
 	"context"
@@ -57,7 +58,8 @@ var (
 	//for local testing provide the location of kubeconfig
 	// inside the civo file paste your kubeconfig
 	// uncomment this line from Dockerfile.Kubviz (COPY --from=builder /workspace/civo /etc/myapp/civo)
-	cluster_conf_loc string = os.Getenv("CONFIG_LOCATION")
+	cluster_conf_loc      string = os.Getenv("CONFIG_LOCATION")
+	schedulingIntervalStr string = os.Getenv("SCHEDULING_INTERVAL")
 )
 
 func main() {
@@ -107,15 +109,28 @@ func main() {
 	// if err != nil {
 	// 	log.Println("Error setting up the job for outDatedImages:", err)
 	// }
-	go outDatedImages(config, js, &wg, outdatedErrChan)
-	go RunTrivyImageScan(config, js, &wg, trivyImagescanChan)
+	schedulingInterval, err := time.ParseDuration(schedulingIntervalStr)
+	if err != nil {
+		log.Fatalf("Failed to parse SCHEDULING_INTERVAL: %v", err)
+	}
+	s := gocron.NewScheduler(time.UTC)
+	// go outDatedImages(config, js, &wg, outdatedErrChan)
+	// go RunTrivyImageScan(config, js, &wg, trivyImagescanChan)
 
-	go KubePreUpgradeDetector(config, js, &wg, kubePreUpgradeChan)
-	go GetAllResources(config, js, &wg, getAllResourceChan)
-	go RakeesOutput(config, js, &wg, RakeesErrChan)
-	go getK8sEvents(clientset)
-	go publishMetrics(clientset, js, &wg, clusterMetricsChan)
-	go RunKubeScore(clientset, js, &wg, kubescoreMetricsChan)
+	// go KubePreUpgradeDetector(config, js, &wg, kubePreUpgradeChan)
+	// go GetAllResources(config, js, &wg, getAllResourceChan)
+	// go RakeesOutput(config, js, &wg, RakeesErrChan)
+	// go getK8sEvents(clientset)
+	// go publishMetrics(clientset, js, &wg, clusterMetricsChan)
+	// go RunKubeScore(clientset, js, &wg, kubescoreMetricsChan)
+	s.Every(schedulingInterval).Do(outDatedImages, config, js, &wg, outdatedErrChan)
+	s.Every(schedulingInterval).Do(RunTrivyImageScan, config, js, &wg, trivyImagescanChan)
+	s.Every(schedulingInterval).Do(KubePreUpgradeDetector, config, js, &wg, kubePreUpgradeChan)
+	s.Every(schedulingInterval).Do(GetAllResources, config, js, &wg, getAllResourceChan)
+	s.Every(schedulingInterval).Do(RakeesOutput, config, js, &wg, RakeesErrChan)
+	s.Every(schedulingInterval).Do(publishMetrics, clientset, js, &wg, clusterMetricsChan)
+	s.Every(schedulingInterval).Do(RunKubeScore, clientset, js, &wg, kubescoreMetricsChan)
+	s.StartAsync()
 	wg.Wait()
 	// once the go routines completes we will close the error channels
 	close(outdatedErrChan)
