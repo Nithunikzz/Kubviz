@@ -2,11 +2,12 @@ package clients
 
 import (
 	"encoding/json"
-	"github.com/nats-io/nats.go"
 	"log"
 
 	"github.com/intelops/kubviz/client/pkg/clickhouse"
+	"github.com/intelops/kubviz/constants"
 	"github.com/intelops/kubviz/model"
+	"github.com/nats-io/nats.go"
 )
 
 const (
@@ -50,6 +51,21 @@ func (n *NATSContext) SubscribeAllKubvizNats(conn clickhouse.DBInterface) {
 				}
 				log.Printf("Ketall Metrics Received: %#v,", metrics)
 				conn.InsertKetallEvent(metrics)
+				log.Println()
+			},
+		},
+		{
+			Subject:  constants.TRIVY_IMAGE_SUBJECT,
+			Consumer: constants.TrivyConsumer,
+			Handler: func(msg *nats.Msg) {
+				msg.Ack()
+				var metrics model.Trivy
+				err := json.Unmarshal(msg.Data, &metrics)
+				if err != nil {
+					log.Fatal(err)
+				}
+				log.Printf("Trivy Metrics Received: %#v,", metrics)
+				conn.InsertTrivyImageMetrics(metrics)
 				log.Println()
 			},
 		},

@@ -28,6 +28,7 @@ type DBInterface interface {
 	InsertOutdatedEvent(model.CheckResultfinal)
 	InsertDeprecatedAPI(model.DeprecatedAPI)
 	InsertDeletedAPI(model.DeletedAPI)
+	InsertTrivyImageMetrics(metrics model.Trivy)
 	InsertKubvizEvent(model.Metrics)
 	InsertGitEvent(string)
 	InsertKubeScoreMetrics(model.KubeScoreRecommendations)
@@ -66,7 +67,7 @@ func NewDBClient(conf *config.Config) (DBInterface, error) {
 		}
 		return nil, err
 	}
-	tables := []DBStatement{kubvizTable, rakeesTable, kubePugDepricatedTable, kubepugDeletedTable, ketallTable, outdateTable, clickhouseExperimental, containerDockerhubTable, containerGithubTable, kubescoreTable, dockerHubBuildTable, DBStatement(dbstatement.AzureDevopsTable), DBStatement(dbstatement.GithubTable), DBStatement(dbstatement.GitlabTable), DBStatement(dbstatement.BitbucketTable), DBStatement(dbstatement.GiteaTable)}
+	tables := []DBStatement{kubvizTable, rakeesTable, trivyTableImage, kubePugDepricatedTable, kubepugDeletedTable, ketallTable, outdateTable, clickhouseExperimental, containerDockerhubTable, containerGithubTable, kubescoreTable, dockerHubBuildTable, DBStatement(dbstatement.AzureDevopsTable), DBStatement(dbstatement.GithubTable), DBStatement(dbstatement.GitlabTable), DBStatement(dbstatement.BitbucketTable), DBStatement(dbstatement.GiteaTable)}
 	for _, table := range tables {
 		if err = splconn.Exec(context.Background(), string(table)); err != nil {
 			return nil, err
@@ -233,6 +234,37 @@ func (c *DBClient) InsertKubvizEvent(metrics model.Metrics) {
 		log.Fatal(err)
 	}
 }
+func (c *DBClient) InsertTrivyImageMetrics(metrics model.Trivy) {
+	for _, result := range metrics.Report.Results {
+		for _, vulnerability := range result.Vulnerabilities {
+			var (
+				tx, _   = c.conn.Begin()
+				stmt, _ = tx.Prepare(InsertTrivyImage)
+			)
+			if _, err := stmt.Exec(
+				metrics.ID,
+				metrics.ClusterName,
+				vulnerability.VulnerabilityID,
+				vulnerability.PkgID,
+				vulnerability.PkgName,
+				vulnerability.InstalledVersion,
+				vulnerability.FixedVersion,
+				vulnerability.Title,
+				vulnerability.Severity,
+				vulnerability.PublishedDate,
+				vulnerability.LastModifiedDate,
+			); err != nil {
+				log.Fatal(err)
+			}
+			if err := tx.Commit(); err != nil {
+				log.Fatal(err)
+			}
+			stmt.Close()
+		}
+
+	}
+}
+
 func (c *DBClient) InsertGitEvent(event string) {
 	ctx := context.Background()
 	batch, err := c.splconn.PrepareBatch(ctx, "INSERT INTO git_json")

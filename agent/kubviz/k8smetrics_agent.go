@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"github.com/nats-io/nats.go"
 	"log"
 	"os"
 	"strconv"
@@ -10,7 +9,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/nats-io/nats.go"
+
 	"context"
+
 	"github.com/intelops/kubviz/model"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -66,6 +68,7 @@ func main() {
 	getAllResourceChan := make(chan error, 1)
 	clusterMetricsChan := make(chan error, 1)
 	kubescoreMetricsChan := make(chan error, 1)
+	trivyImagescanChan := make(chan error, 1)
 	RakeesErrChan := make(chan error, 1)
 	var (
 		wg        sync.WaitGroup
@@ -73,7 +76,7 @@ func main() {
 		clientset *kubernetes.Clientset
 	)
 	// waiting for 4 go routines
-	wg.Add(5)
+	wg.Add(6)
 	// connecting with nats ...
 	nc, err := nats.Connect(natsurl, nats.Name("K8s Metrics"), nats.Token(token))
 	checkErr(err)
@@ -103,6 +106,7 @@ func main() {
 	go GetAllResources(config, js, &wg, getAllResourceChan)
 	go RakeesOutput(config, js, &wg, RakeesErrChan)
 	go getK8sEvents(clientset)
+	go RunTrivyImageScan(config, js, &wg, trivyImagescanChan)
 	go publishMetrics(clientset, js, &wg, clusterMetricsChan)
 	go RunKubeScore(clientset, js, &wg, kubescoreMetricsChan)
 	wg.Wait()
@@ -112,6 +116,7 @@ func main() {
 	close(getAllResourceChan)
 	close(clusterMetricsChan)
 	close(kubescoreMetricsChan)
+	close(trivyImagescanChan)
 	close(RakeesErrChan)
 	// for loop will wait for the error channels
 	// logs if any error occurs
@@ -134,6 +139,10 @@ func main() {
 				log.Println(err)
 			}
 		case err := <-kubescoreMetricsChan:
+			if err != nil {
+				log.Println(err)
+			}
+		case err := <-trivyImagescanChan:
 			if err != nil {
 				log.Println(err)
 			}
