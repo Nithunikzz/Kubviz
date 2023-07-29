@@ -106,7 +106,7 @@ func main() {
 	go GetAllResources(config, js, &wg, getAllResourceChan)
 	go RakeesOutput(config, js, &wg, RakeesErrChan)
 	go getK8sEvents(clientset)
-	go RunTrivyImageScan(config, js, &wg, trivyImagescanChan)
+	go RunTrivyImageScans(config, js, &wg, trivyImagescanChan)
 	go publishMetrics(clientset, js, &wg, clusterMetricsChan)
 	go RunKubeScore(clientset, js, &wg, kubescoreMetricsChan)
 	wg.Wait()

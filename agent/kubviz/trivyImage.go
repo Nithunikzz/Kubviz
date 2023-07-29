@@ -47,7 +47,7 @@ func RunTrivyImageScans(config *rest.Config, js nats.JetStreamContext, wg *sync.
 			log.Printf("Error occurred while Unmarshalling json: %v", err)
 			continue // Move on to the next image in case of an error
 		}
-		publishImageScanReport(report, js, errCh)
+		publishImageScanReports(report, js, errCh)
 		// If you want to publish the report or perform any other action with it, you can do it here
 
 	}
