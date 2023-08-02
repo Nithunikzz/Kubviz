@@ -72,12 +72,24 @@ CREATE TABLE IF NOT EXISTS outdated_images (
 ) engine=File(TabSeparated)
 `
 const kubescoreTable DBStatement = `
-	    CREATE TABLE IF NOT EXISTS kubescore (
-		    id UUID,
-			namespace String,
-			cluster_name String,
-			recommendations String
-	    ) engine=File(TabSeparated)
+CREATE TABLE IF NOT EXISTS kubescore (
+	id UUID,
+	clustername String,
+	objectname String,
+	objectnamespace String,
+	objectmetaname String,
+	objectmetageneratename String,
+	objectannoations String,
+	kind String,
+	apiversion String,
+	filename String,
+	filerow  BIGINT,
+	checks String,
+	checks_id BIGINT,
+	comments String,
+	grade String,
+	checktargettype String
+	) engine=File(TabSeparated)
 	`
 const trivyTableImage DBStatement = `
 	CREATE TABLE IF NOT EXISTS trivyimage (
@@ -163,7 +175,7 @@ const InsertKubvizEvent DBStatement = "INSERT INTO events (ClusterName, Id, Even
 const clickhouseExperimental DBStatement = `SET allow_experimental_object_type=1;`
 const containerDockerhubTable DBStatement = `CREATE table IF NOT EXISTS container_dockerhub(event JSON) ENGINE = MergeTree ORDER BY tuple();`
 const containerGithubTable DBStatement = `CREATE table IF NOT EXISTS container_github(event JSON) ENGINE = MergeTree ORDER BY tuple();`
-const InsertKubeScore string = "INSERT INTO kubescore (id, namespace, cluster_name, recommendations) VALUES (?, ?, ?, ?)"
+const InsertKubeScore string = "INSERT INTO kubescore(id,clustername,objectname,objectnamespace,objectmetaname,objectmetageneratename,objectannoations,kind,apiversion,filename,filerow,checks,checks_id,comments,grade,checktargettype)VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
 const InsertTrivyVul string = "INSERT INTO trivy_vul (id, cluster_name, namespace, kind, name, vul_id, vul_vendor_ids, vul_pkg_id, vul_pkg_name, vul_pkg_path, vul_installed_version, vul_fixed_version, vul_title, vul_severity, vul_published_date, vul_last_modified_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?. ?)"
 const InsertTrivyImage string = "INSERT INTO trivyimage (id, cluster_name, artifact_name,metadata_size ,metadata_osname ,metadata_imageid ,metadata_diffid ,metadata_repotags ,metadata_repodigest, vul_id,  vul_pkg_id, vul_pkg_name,  vul_installed_version, vul_fixed_version, vul_title, vul_severity, vul_published_date, vul_last_modified_date) VALUES ( ?,?,?,?,?,?,?,?,?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
 const InsertTrivyMisconfig string = "INSERT INTO trivy_misconfig (id, cluster_name, namespace, kind, name, misconfig_id, misconfig_avdid, misconfig_type, misconfig_title, misconfig_desc, misconfig_msg, misconfig_query, misconfig_resolution, misconfig_severity, misconfig_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?. ?, ?)"

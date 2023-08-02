@@ -306,24 +306,37 @@ func (c *DBClient) InsertContainerEvent(event string) {
 }
 
 func (c *DBClient) InsertKubeScoreMetrics(metrics model.KubeScoreRecommendations) {
-	var (
-		tx, _   = c.conn.Begin()
-		stmt, _ = tx.Prepare(InsertKubeScore)
-	)
-	defer stmt.Close()
-	if _, err := stmt.Exec(
-		metrics.ID,
-		metrics.Namespace,
-		metrics.ClusterName,
-		metrics.Recommendations,
-	); err != nil {
-		log.Fatal(err)
-	}
-	if err := tx.Commit(); err != nil {
-		log.Fatal(err)
+	for _, result := range metrics.Report.Checks {
+		var (
+			tx, _   = c.conn.Begin()
+			stmt, _ = tx.Prepare(InsertKubeScore)
+		)
+		defer stmt.Close()
+		if _, err := stmt.Exec(
+			metrics.ID,
+			metrics.ClusterName,
+			metrics.Report.ObjectName,
+			metrics.Report.ObjectMeta.Namespace,
+			metrics.Report.ObjectMeta.Name,
+			metrics.Report.ObjectMeta.GenerateName,
+			metrics.Report.ObjectMeta.Annotations,
+			metrics.Report.TypeMeta.Kind,
+			metrics.Report.TypeMeta.APIVersion,
+			metrics.Report.FileName,
+			metrics.Report.FileRow,
+			metrics.Report.Checks,
+			result.Check.ID,
+			result.Comments,
+			result.Grade,
+			result.Check.TargetType, // Assuming Check is a field of Check struct in TestScore// Assuming Grade is a field of scorecard.Grade in TestScore
+		); err != nil {
+			log.Fatal(err)
+		}
+		if err := tx.Commit(); err != nil {
+			log.Fatal(err)
+		}
 	}
 }
-
 func (c *DBClient) InsertTrivyMetrics(metrics model.Trivy) {
 	for _, finding := range metrics.Report.Findings {
 		for _, result := range finding.Results {
